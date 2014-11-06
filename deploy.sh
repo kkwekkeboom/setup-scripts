@@ -23,8 +23,8 @@ create_flasher_image()
 	sudo cp sources/meta-angstrom/recipes-core/base-files/base-files/fstab ${ROOTFS}/etc
 
 	echo "Copying kernel"
-	sudo cp ~/Documents/projects/pem2/images/BBB_flasher_image/boot/uImage_vaf ${ROOTFS}/boot
-	sudo ln -sf /boot/uImage_vaf ${ROOTFS}/boot/uImage
+	#sudo cp ~/Documents/projects/pem2/images/BBB_flasher_image/boot/uImage_vaf ${ROOTFS}/boot
+#	sudo ln -sf /boot/uImage_vaf ${ROOTFS}/boot/uImage
 
 	echo "Copying deployment image"
 	sudo mkdir -p ${BOOT}/linux
