@@ -3,6 +3,8 @@ BOOT=/media/boot
 BUILD_DIR=build/tmp-angstrom_v2013_06-eglibc/deploy/images/beaglebone
 pflag=
 pval=
+mflag=
+mval=
 cflag=
 #expect to partitions of an SD-card
 
@@ -16,24 +18,60 @@ create_flasher_image()
 		echo "no boot partition mounted";
 		exit
 	fi
+	#if [[ ! -e ./kernel/uImage ]]; then
+	#	echo "First build kernel (build_kernel.sh)"
+	#	exit;
+	#fi
+
+	if [[ ! -e ${BUILD_DIR}/console-image-vaf-beaglebone.tar.xz ]]; then
+		echo "First build console image (bitbake console-image-vaf)"
+		exit;
+	fi
+
+	if [[ ! -e ${BUILD_DIR}/flasher-image-vaf-beaglebone.tar.xz ]]; then
+		echo "First build flasher image (bitbake flasher-image-vaf)"
+		exit
+	fi
+
+	if [[ ! -e ${BUILD_DIR}/MLO-beaglebone-2013.04 ]]; then
+		echo "First build MLO (bitbake u-boot-vaf)"
+		exit
+	fi
+
+	if [[ ! -e ${BUILD_DIR}/u-boot-beaglebone-2013.04-r0.img ]]; then
+		echo "First build u-boot (bitbake u-boot-vaf)"
+		exit
+	fi
+
 	FLASHER_IMAGE=$(find ${BUILD_DIR} -name "flasher-image-vaf*.tar.xz")
 	echo "Copying ${FLASHER_IMAGE} to $ROOTFS"
 	sudo rm -r ${ROOTFS}/*
+	sudo rm -r ${BOOT}/*
 	sudo tar -xf ${BUILD_DIR}/flasher-image-vaf-beaglebone.tar.xz -C ${ROOTFS}
 	sudo cp sources/meta-angstrom/recipes-core/base-files/base-files/fstab ${ROOTFS}/etc
 
-	echo "Copying kernel"
-	#sudo cp ~/Documents/projects/pem2/images/BBB_flasher_image/boot/uImage_vaf ${ROOTFS}/boot
-#	sudo ln -sf /boot/uImage_vaf ${ROOTFS}/boot/uImage
+#	echo "Copying 3.14.25 kernel"
+#	sudo rm ${ROOTFS}/boot/uImag*
+#	sudo cp ./kernel/uImage ${ROOTFS}/boot
+
+#	echo "Copying kernel modules to include kernel 3.14.25"
+	#sudo rm -r ${ROOTFS}/lib/modules/*
+#	cd kernel/linux
+#	sudo make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- INSTALL_MOD_PATH=${ROOTFS}
+#	sudo cp -r ./kernel/kernel_modules/lib/modules/* ${ROOTFS}/lib/modules
+#	cd ../../
+#	echo "Copying device tree"
+#	sudo cp ./kernel/am335x-boneblack.dtb ${ROOTFS}/boot
 
 	echo "Copying deployment image"
 	sudo mkdir -p ${BOOT}/linux
 	sudo cp ${BUILD_DIR}/console-image-vaf-beaglebone.tar.xz ${BOOT}/linux
 
 	echo "Coyping bootloader MLO and uEnv"
-	sudo cp ~/Documents/projects/pem2/images/BBB_flasher_image/boot/MLO ${BOOT}
-	sudo cp ~/Documents/projects/pem2/images/BBB_flasher_image/boot/u-boot.img ${BOOT}
-	sudo cp ~/Documents/projects/pem2/images/BBB_flasher_image/boot/uEnv.txt ${BOOT}
+	sudo cp ${BUILD_DIR}/MLO-beaglebone-2013.04 ${BOOT}/MLO
+	sudo cp ${BUILD_DIR}/u-boot-beaglebone-2013.04-r0.img ${BOOT}/u-boot.img
+	#echo "fdtaddr=0x88000000" > ${BOOT}/uEnv.txt
+	#sudo cp ~/Documents/projects/pem2/images/BBB_flasher_image/boot/uEnv.txt ${BOOT}
 	sync
 }
 
@@ -64,7 +102,7 @@ prepare_sdcard()
 	echo CYLINDERS - $CYLINDERS
 	{
 	echo ,5,0x0C,*
-	echo ,21,,-
+	echo ,80,,-
 	} | sfdisk -D -H 255 -S 63 -C $CYLINDERS $DRIVE
 
 	sleep 1
@@ -82,6 +120,10 @@ while getopts cp: arg; do
   c)
 			cflag=1
       ;;
+	m)	
+			mval="$OPTARG"
+			mflags=1
+			;;
 	\?)	
 			echo "invalid option -$OPTARG" >&2
 			;;
@@ -96,5 +138,3 @@ if [ ! -z "$cflag" ]; then
 fi
 
 shift $((OPTIND-1))
-
-
