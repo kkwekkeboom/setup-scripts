@@ -102,7 +102,7 @@ prepare_sdcard()
 	echo CYLINDERS - $CYLINDERS
 	{
 	echo ,5,0x0C,*
-	echo ,80,,-
+	echo ,12,,-
 	} | sfdisk -D -H 255 -S 63 -C $CYLINDERS $DRIVE
 
 	sleep 1
