@@ -1,6 +1,6 @@
 ROOTFS=/media/rootfs
 BOOT=/media/boot
-BUILD_DIR=build/tmp-angstrom_v2013_06-eglibc/deploy/images/beaglebone
+BUILD_DIR=build/tmp-angstrom_v2012_12-eglibc/deploy/images/beaglebone
 pflag=
 pval=
 mflag=
