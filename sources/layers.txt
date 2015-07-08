@@ -20,6 +20,6 @@ meta-mono,git://git.yoctoproject.org/meta-mono.git,master,adf47f078dbf788a80ff13
 meta-linaro,git://github.com/Angstrom-distribution/meta-linaro.git,danny,HEAD
 meta-minnow,git://git.yoctoproject.org/meta-minnow,danny,HEAD
 meta-allwinner,git://github.com/naguirre/meta-allwinner.git,danny,HEAD
-meta-ros,git://github.com/bmwcarit/meta-ros.git,master,1a6a63ef2316a45a2fa07e00907a73d33aeeb7d7
+#meta-ros,git://github.com/bmwcarit/meta-ros.git,master,1a6a63ef2316a45a2fa07e00907a73d33aeeb7d7
 meta-vaf,git://github.com/kkwekkeboom/meta-vaf.git,master,356a599323df812bbeab3dd2559abd83e24d36de
 openembedded-core,git://github.com/Angstrom-distribution/oe-core.git,angstrom-staging-yocto1.3,HEAD
