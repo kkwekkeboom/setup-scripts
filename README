@@ -1,32 +1,106 @@
-These are the setup scripts for the Angstrom buildsystem. If you want to (re)build packages or images for Angstrom, this is the thing to use.
-The Angstrom buildsystem is using various components from the Yocto Project, most importantly the Openembedded buildsystem, the bitbake task executor and various application and BSP layers.
+Author: C.S. Kwekkeboom
+Date: November 2014
 
-This Angstrom release (v2012.12) is officially Yocto Project Compatible with the Yocto Project release 1.3 ("Danny").
+###################################################################################################
+History
+###################################################################################################
 
-To configure the scripts and download the build metadata, do:
+This buildsystem is based on the angstrom setup scripts provided by https://github.com/angstrom-distribution/setup-scripts/
+The choice has been made to use the v2012.12-yocto1.3 branch.
 
-	$ MACHINE=beagleboard ./oebb.sh config beagleboard
+###################################################################################################
+How is this environment created?
+###################################################################################################
 
-You can change the 'beagleboard' in the commandline above into the machine you are targeting.
+1 $git clone https://github.com/angstrom-distribution/setup-scripts/
+2 $git checkout remotes/origin/angstrom-v2012.12-yocto1.3
+3 $git checkout -b addlayer
+4 Write meta-vaf layer in a seperate git repository
+5 Add meta-vaf layer to conf/bblayers.conf and commit changes to addlayer branch
+6 Build u-boot-vaf
+7 Build console-image-vaf
+8 Build flasher-image-vaf
+9 Use the deploy script to create a flasher sd card image
+
+See the file installed_packages for an overview of my machine configuration
+
+###################################################################################################
+How to use
+###################################################################################################
+$MACHINE=beaglebone ./oebb.sh config beaglebone
 
 To start a build of the kernel, source the environment file and do:
+$. ~/.oe/environment-angstromv2012.12
+$bitbake virtual/kernel
 
-	$ . ~/.oe/environment-angstromv2012.12
-	$ MACHINE=beagleboard bitbake virtual/kernel
+To build u-boot
+$bitbake u-boot-vaf
 
-For an example workflow for dealing with kernels please read http://www.slimlogic.co.uk/2011/05/openembeddedangstrom-kernel-workflow/
+Make sure the MD5SUM for u-boot and MLO match:
+$md5sum build/tmp-angstrom_v2013_06-eglibc/deploy/images/beaglebone/MLO
+$md5sum build/tmp-angstrom_v2013_06-eglibc/deploy/images/beaglebone/u-boot.img
+$grep "MD5" sources/meta-vaf/meta-pem3/recipes-pem3/pem3-flasher-scripts/pem3-flasher-scripts/emmc.sh
+Verify the checksums match!!!!
 
-To update the metadata, do:
+To build the deployment image:
+$bitbake console-image-vaf
 
-	$ git pull
-	$ ./oebb.sh update
+To build the flasher image:
+$bitbake flasher-image-vaf
 
-The oebb.sh script tries hard to keep your local changes while at the same time keeping close to the original config. Please keep the following in mind:
+Prepare an sd card with two partitions
+$./deploy.sh -p /dev/sd[x] 
 
-	* it will reset the origin URI based on layers.txt, so update layers.txt when changing a repo
-	* it will do a 'git reset --hard <ref>' on locked down repos, so please create a new branch for your changes
-	* As noted above, it will NOT switch branches, so be carefull when using the update function after you branched a repo
+Deploy the image to a micro-SD card (drive x) using
+$./deploy.sh -c /dev/sd[x] 
 
-If you find any bugs please report them here: https://github.com/angstrom-distribution/setup-scripts/issues
+Extract an .img file from the sd card for further deployment. Use fdisk to determine the size of the partitions
+$sudo fdisk /dev/sdd
+$p
+Find last block of the second partition (in my case 273104)
+$dd if=/dev/sdd of=flasher_image.img bs=512 count=273104
 
-If you have questions or feedback, please subscribe to http://lists.linuxtogo.org/cgi-bin/mailman/listinfo/angstrom-distro-devel
+Extra:
+$git pull
+$./oebb.sh update
+
+###################################################################################################
+Changelog
+###################################################################################################
+
+1. Added console-image-vaf.bb and flasher-image-vaf.bb to recipes-images (see https://github.com/kkwekkeboom/meta-vaf/tree/csk_layer/recipes-images/angstrom)
+2. Added custom kernel defconfig to recipes-kernel (see https://github.com/kkwekkeboom/meta-vaf/tree/csk_layer/recipes-kernel/linux)
+3. Added recipes-pem3: (see https://github.com/kkwekkeboom/meta-vaf/tree/csk_layer)
+	3-1. Changed /etc/fstab in base-files (see https://github.com/kkwekkeboom/meta-vaf/tree/csk_layer/recipes-pem3/base-files)
+	3-2. Include libmodbus with custom RTU path in image (see https://github.com/kkwekkeboom/meta-vaf/tree/csk_layer/recipes-pem3/libmodbus and https://github.com/kkwekkeboom/libmodbus/tree/rtupatch)
+	3-3. Added flasher-scripts: eMMc partition / format and eMMc populate script (see https://github.com/kkwekkeboom/meta-vaf/tree/csk_layer/recipes-pem3/pem3-flasher-scripts)
+	3-4. Added pem3-scripts: pem3 service, dns service, software update scripts, software update udev rules, device tree (see https://github.com/kkwekkeboom/meta-vaf/tree/csk_layer/recipes-pem3/pem3-scripts)
+4. Added u-boot with patch to set bootdelay to zero (see https://github.com/kkwekkeboom/u-boot-vaf/tree/bootdelay_patches)
+5. Changed libmodbus version to libmodbusvaf (somewhere between 3.1.0 and 3.1.1 with rtu patches)	
+6. Removed 3.14 kernel from files.
+
+###################################################################################################
+Tested:
+###################################################################################################
+V-pem3_0.3.8 runs
+V-Added /application and /database  and /database/log directories to deployment image
+V-pem3.service
+V-sdcard.rules
+V-usbstick.rules
+V-handle_storagedevice.sh
+V-software-update.sh
+V-static_network.service -> Replaced by /etc/init.d/network restart
+V-install libmodbus automatically
+V-set password during build
+V-modify 55-resolv.conf script to put nameservers on /database partition -> not needed
+V-create necessary files for dns settings (/etc/zone /etc/hostname /etc/
+V-usb ethernet works
+V-kernel option WATCHDOG_NOWAYOUT=y enabled
+V-Full eMMc used for /database
+V-flashen / software update via sdcard / usb mogelijk
+V-versienummber
+V-u-boot integreren in build
+V-Ethernet bug fixed by upgrading to kernel version 3.14.25-ti-r37 (ifdown ifup cycling works now) 
+#TODO:
+#-create .img
+#-add beaglebone serial port drivers for windows to BBB?
